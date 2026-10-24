@@ -1,0 +1,1276 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>크보덕아웃</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Oswald:wght@500;700&display=swap">
+<style>
+/* Layout: an iPhone shell — status bar, one scrolling screen (home / browser / messenger), home indicator.
+   The board lives inside the browser screen; the messenger is its own screen. Single committed look. */
+:root{
+  --paper:#ffffff;
+  --board:#e9ebf0;
+  --ink:#16181d;
+  --navy:#2f3c74;
+  --navy-deep:#222c58;
+  --line:#dcdfe6;
+  --line-soft:#eceef3;
+  --muted:#7b8292;
+  --link:#1f2d57;
+  --hot:#c0392b;
+  --ghost:#aab0bb;
+  --ad:#fcf7e6;
+  --ad-line:#eadfb8;
+  --ktalk:#b2c7d9;
+  --kyellow:#fae100;
+  --stage:#0d1016;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--stage);
+  color:var(--ink);
+  font-family:"Noto Sans KR","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;
+  font-size:14px;line-height:1.6;
+  -webkit-text-size-adjust:100%;
+  word-break:keep-all;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+button{font-family:inherit;cursor:pointer}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid #5a86d8;outline-offset:1px}
+
+/* ---------- device ---------- */
+.device{
+  position:relative;width:100%;height:100%;max-width:430px;
+  display:flex;flex-direction:column;overflow:hidden;background:#000;
+}
+.device.s-home{
+  background:
+    radial-gradient(130% 62% at 14% 2%, #8adfd6 0%, rgba(138,223,214,0) 52%),
+    radial-gradient(90% 55% at 95% 28%, rgba(74,155,186,.5) 0%, rgba(74,155,186,0) 62%),
+    linear-gradient(168deg,#2b8296 0%,#215f87 28%,#1a3c6b 58%,#101d40 100%);
+}
+.device.s-browser{background:#fff;--topbg:#f3f3f4;--botbg:#fff}
+.device.s-talk{background:var(--ktalk);--topbg:var(--ktalk);--botbg:#fff}
+@media(min-width:470px) and (min-height:760px){
+  .device{height:min(100%,884px);border-radius:46px;box-shadow:0 0 0 10px #1b1e24,0 0 0 12px #2e333c,0 30px 80px rgba(0,0,0,.6)}
+}
+.status{
+  flex:none;position:relative;z-index:12;display:flex;align-items:center;
+  height:50px;padding-top:env(safe-area-inset-top,0px);
+  padding-left:max(26px,env(safe-area-inset-left,0px));
+  padding-right:max(22px,env(safe-area-inset-right,0px));
+  font-size:15px;font-weight:600;letter-spacing:.2px;
+  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;
+  color:#fff;background:var(--topbg,transparent);transition:color .25s;
+}
+.status.dark{color:#111}
+.status .isl{
+  position:absolute;left:50%;transform:translateX(-50%);
+  top:calc(env(safe-area-inset-top,0px) + 9px);
+  width:104px;height:30px;border-radius:16px;background:#000;
+}
+@media(max-width:469px){.status .isl{display:none}}
+.status .rt{margin-left:auto;display:flex;align-items:center;gap:6px}
+.status .bars{display:flex;gap:2px;align-items:flex-end}
+.status .bars i{display:block;width:3px;background:currentColor;border-radius:1px}
+.status .bars i:nth-child(1){height:4px}.status .bars i:nth-child(2){height:6px}
+.status .bars i:nth-child(3){height:8px}.status .bars i:nth-child(4){height:10px}
+.status .bt{width:23px;height:11.5px;border:1.4px solid currentColor;border-radius:3.2px;position:relative;padding:1.4px;opacity:.95}
+.status .bt::after{content:"";position:absolute;right:-3.6px;top:3.4px;width:2px;height:4.6px;background:currentColor;border-radius:0 1.4px 1.4px 0;opacity:.6}
+.status .bt u{display:block;height:100%;width:62%;background:currentColor;border-radius:1.6px}
+
+.stage{flex:1;position:relative;overflow:hidden;background:transparent}
+.view{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;transform-origin:50% 46%}
+#home{z-index:0}
+#browser,#talk{z-index:1}
+.view.closing{z-index:5;pointer-events:none;animation:appClose .44s cubic-bezier(.32,.72,0,1) forwards}
+.view.launching{animation:appOpen .4s cubic-bezier(.32,.72,0,1)}
+@keyframes appClose{
+  0%{transform:scale(1);opacity:1;border-radius:0}
+  70%{opacity:.5}
+  100%{transform:scale(.56) translateY(7%);opacity:0;border-radius:46px}
+}
+@keyframes appOpen{
+  from{transform:scale(.6) translateY(7%);opacity:0;border-radius:46px}
+  to{transform:none;opacity:1;border-radius:0}
+}
+#home.opening .widgets,#home.opening .grid,#home.opening .dock,
+#home.opening .srchpill,#home.opening .pages{animation:homeIn .44s cubic-bezier(.32,.72,0,1) backwards}
+@keyframes homeIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){
+  .view.closing,.view.launching,#home.opening .widgets,#home.opening .grid,
+  #home.opening .dock,#home.opening .srchpill,#home.opening .pages{animation:none}
+  .view.closing{opacity:0}
+}
+
+.hbar{
+  flex:none;position:relative;z-index:12;height:26px;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  display:grid;place-items:center;touch-action:none;background:var(--botbg,transparent);
+}
+.hbar button{width:138px;height:5px;border-radius:3px;background:#fff;border:none;opacity:.92;padding:0}
+.hbar.dark button{background:#111;opacity:.32}
+.hint{
+  position:absolute;left:50%;transform:translateX(-50%);
+  bottom:calc(34px + env(safe-area-inset-bottom,0px));z-index:30;
+  background:rgba(18,21,28,.82);color:#fff;font-size:11.5px;padding:6px 13px;border-radius:14px;
+  pointer-events:none;animation:fade 4s ease forwards;
+}
+@keyframes fade{0%{opacity:0}12%{opacity:1}72%{opacity:1}100%{opacity:0}}
+
+/* ---------- home screen ---------- */
+#home{background:transparent;padding-top:14px}
+.homenote{align-self:center;margin:6px 18px 0;padding:6px 14px;border-radius:14px;
+  background:rgba(10,18,36,.32);backdrop-filter:blur(10px);
+  color:rgba(255,255,255,.93);font-size:11.5px;letter-spacing:-.2px;
+  text-shadow:0 1px 3px rgba(0,0,0,.3)}
+.pages{display:flex;justify-content:center;gap:7px;margin-top:auto;padding-bottom:9px}
+.pages i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.42)}
+.pages i.on{background:#fff}
+.widgets{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:6px 18px 22px}
+.wgt{aspect-ratio:1/1;border-radius:22px;padding:14px 16px;display:flex;flex-direction:column;overflow:hidden}
+.wgt.wx{background:rgba(78,142,185,.5);backdrop-filter:blur(16px);color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.wgt.wx b{font-size:15px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.25)}
+.wtemp{font-size:48px;font-weight:200;line-height:1.02;margin-top:1px;letter-spacing:-2.5px}
+.wcond{margin-top:auto;font-size:12.5px;opacity:.95}
+.whl{font-size:12.5px;opacity:.95}
+.wgt.cal{background:#fff;color:#1b1b1b;box-shadow:0 6px 20px rgba(0,0,0,.16)}
+.cdow{font-size:13px;font-weight:700;color:#ff3b30;letter-spacing:-.3px}
+.cday{font-size:42px;font-weight:600;letter-spacing:-2px;line-height:1.08}
+.cev{margin-top:auto;font-size:12.5px;color:#5c6069;line-height:1.45}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px 8px;padding:8px 18px 0}
+.app{background:none;border:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
+.app .ic{width:60px;height:60px;border-radius:14px;display:grid;place-items:center;box-shadow:0 2px 7px rgba(0,0,0,.26);overflow:hidden;position:relative}
+.app .lb{font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.45);max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.2px}
+.app .bg{position:absolute;top:-4px;right:2px;min-width:21px;height:21px;border-radius:11px;background:#ff3b30;color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;padding:0 5px;box-shadow:0 0 0 1.6px rgba(255,255,255,.5)}
+.app.live .ic{cursor:pointer}
+.app.dim .ic{opacity:.97}
+.app.dim{cursor:default}
+.srchpill{display:flex;justify-content:center;padding-bottom:10px}
+.srchpill span{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.22);backdrop-filter:blur(8px);color:#fff;font-size:12.5px;padding:5px 13px;border-radius:14px}
+.dock{margin:0 10px;padding:12px 10px;border-radius:30px;background:rgba(255,255,255,.2);backdrop-filter:blur(16px);display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
+.dock .app .lb{display:none}
+
+/* ---------- browser chrome ---------- */
+#browser{background:var(--board)}
+.cbar{position:sticky;top:0;z-index:14;flex:none;background:#f3f3f4;border-bottom:1px solid #d9dadd;display:flex;align-items:center;gap:9px;padding:8px 12px}
+.cbar .url{flex:1;min-width:0;display:flex;align-items:center;gap:5px;background:#e4e5e8;border-radius:16px;padding:6px 12px;font-size:12.5px;color:#43474e}
+.cbar .url span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cbar .ib{background:none;border:none;color:#5b6069;padding:2px;display:grid;place-items:center}
+.cbar .tabs{border:1.8px solid #5b6069;border-radius:4px;width:19px;height:19px;font-size:11px;font-weight:700;color:#5b6069;display:grid;place-items:center;background:none}
+.page{background:var(--paper);flex:1}
+.gut{padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px))}
+
+/* ---------- board ---------- */
+.brand{background:var(--navy-deep);color:#fff}
+.brand .in{display:flex;align-items:center;gap:10px;padding-block:9px}
+.brand .mk{display:flex;align-items:baseline;gap:6px}
+.brand .mk b{font-size:17px;letter-spacing:-.02em}
+.brand .mk i{font-style:normal;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:.2em;color:#93a1cb}
+.brand .sp{margin-left:auto;display:flex;gap:14px;align-items:center;color:#b8c2de}
+.brand .sp svg{display:block}
+.btabs{display:flex;background:var(--navy);overflow-x:auto;scrollbar-width:none}
+.btabs::-webkit-scrollbar{display:none}
+.btabs button{background:none;border:none;color:#aab6d8;font-size:13px;padding:10px 15px;white-space:nowrap;border-bottom:2.5px solid transparent}
+.btabs button.on{color:#fff;font-weight:700;border-bottom-color:#fff}
+.btabs button.off{color:#6c7aa6}
+
+.tick{display:flex;overflow-x:auto;background:#f6f7fa;border-bottom:1px solid var(--line);scrollbar-width:none}
+.tick::-webkit-scrollbar{display:none}
+.tick .d{flex:none;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.1em;color:var(--muted);display:grid;place-items:center;padding:0 12px;border-right:1px solid var(--line-soft)}
+.tick .g{flex:none;display:flex;align-items:center;gap:7px;padding:9px 13px;font-size:12px;white-space:nowrap;border-right:1px solid var(--line-soft)}
+.tick .g .s{font-family:Oswald,sans-serif;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.tick .g .w{font-weight:700}
+.tick .g .n{font-size:9.5px;color:var(--ghost);border:1px solid var(--line);padding:0 4px;border-radius:2px}
+
+.ghead{display:flex;align-items:center;gap:8px;padding-block:13px 11px;border-bottom:1px solid var(--line-soft)}
+.ghead h1{margin:0;font-size:17px;letter-spacing:-.03em}
+.ghead .c{font-family:Oswald,sans-serif;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ghead .w{margin-left:auto;background:var(--navy);border:none;color:#fff;font-size:12px;font-weight:700;padding:6px 13px;border-radius:3px}
+.ad{display:flex;gap:9px;align-items:flex-start;margin-block:10px;padding:10px 12px;background:var(--ad);border:1px solid var(--ad-line);border-radius:4px;font-size:12px;color:#6d5f35;line-height:1.5}
+.ad .t{flex:none;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:.1em;border:1px solid var(--ad-line);padding:1px 4px;border-radius:2px;color:#8a7536;margin-top:1px}
+.nts{border-top:1px solid var(--line-soft)}
+.nt{display:flex;gap:8px;align-items:flex-start;padding-block:9px;border-bottom:1px solid var(--line-soft);font-size:12.5px;background:#fafbfd;line-height:1.5}
+.nt .p{flex:none;font-size:10px;font-weight:700;color:var(--navy);background:#e8ecf7;border:1px solid #c6cfe6;padding:1px 5px;border-radius:2px;margin-top:1px}
+.nt .s{margin-left:auto;flex:none;color:var(--ghost);font-size:10.5px;font-variant-numeric:tabular-nums;padding-left:6px}
+.nt.fresh .s{color:var(--hot)}
+.rail{display:flex;gap:5px;overflow-x:auto;padding-block:10px;border-bottom:1px solid var(--line);scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.rail button{flex:none;background:#f1f3f7;border:1px solid transparent;color:#5d6475;font-size:12px;padding:4px 11px;border-radius:13px;white-space:nowrap}
+.rail button.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+
+.rows{border-bottom:1px solid var(--line)}
+.row{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--line-soft);padding-block:11px;color:inherit;font-family:inherit}
+.row:active{background:#f4f6fa}
+
+.row.lock{cursor:default}
+.row.lock:active{background:none}
+
+.row .l1{font-size:14px;line-height:1.5;color:var(--link)}
+.row .cat{display:inline-block;font-size:10.5px;color:var(--muted);border:1px solid var(--line);padding:0 4px;border-radius:2px;vertical-align:2px;margin-right:5px}
+.row .flag{display:inline-block;font-size:10px;font-weight:700;color:var(--hot);border:1px solid #e4b9b3;background:#fdf3f1;padding:0 4px;border-radius:2px;vertical-align:2px;margin-right:5px}
+.row .cm{color:var(--hot);font-family:Oswald,sans-serif;font-size:12px;font-variant-numeric:tabular-nums;margin-left:4px}
+.row .l2{display:flex;gap:7px;align-items:baseline;margin-top:5px;color:var(--muted);font-size:11px;flex-wrap:wrap}
+.row .l2 .n{font-variant-numeric:tabular-nums}
+.row .l1{font-weight:700}
+.row.hot .l1{color:#1b2a52}
+.row.gone .l1{font-weight:400}
+.row.lock .l1{font-weight:400;color:#4a5160}
+.row.hot .l2 .v{color:var(--hot);font-weight:700}
+.row.read .l1{color:#878d9b}
+.row.gone{color:var(--ghost);font-size:12.5px;font-style:italic;background:#fbfbfc;cursor:default}
+.row.gone:active{background:#fbfbfc}
+
+.pager{display:flex;justify-content:center;gap:4px;padding-block:14px}
+.pager button{background:var(--paper);border:1px solid var(--line);color:#5d6475;font-size:12px;min-width:28px;height:28px;border-radius:3px;font-family:Oswald,sans-serif}
+.pager button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.srch{display:flex;gap:5px;padding-block:0 16px}
+.srch select,.srch input{border:1px solid var(--line);border-radius:3px;padding:7px 9px;font-size:12px;font-family:inherit;background:var(--paper);color:var(--ink);min-width:0}
+.srch input{flex:1}
+.srch .go{background:#f1f3f7;border:1px solid var(--line);color:#5d6475;font-size:12px;padding:0 12px;border-radius:3px}
+.foot{padding-block:20px 30px;text-align:center;color:var(--muted);font-size:11px;line-height:1.85;border-top:1px solid var(--line-soft)}
+.foot .g{display:inline-block;border:1px solid var(--line);background:#fafbfd;border-radius:4px;padding:9px 13px;color:#5d6475}
+.foot .g b{color:var(--navy)}
+
+/* ---------- post ---------- */
+.pbar{position:sticky;top:49px;z-index:10;background:var(--paper);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding-block:9px}
+.pbar button{background:none;border:none;color:#3d4454;font-size:13px;padding:3px 2px;display:flex;align-items:center;gap:5px}
+.pbar .ttl{font-size:13px;font-weight:700;color:var(--navy);margin-left:2px}
+.ph{padding-block:15px 12px;border-bottom:1px solid var(--line-soft)}
+.ph .cat{font-size:10.5px;color:var(--muted);border:1px solid var(--line);padding:1px 5px;border-radius:2px}
+.ph .kn{font-size:10.5px;color:var(--hot);border:1px solid #e4b9b3;padding:1px 5px;border-radius:2px;margin-left:4px}
+.ph h2{margin:9px 0 10px;font-size:17px;line-height:1.45;letter-spacing:-.025em;text-wrap:balance}
+.ph .m{display:flex;gap:9px;flex-wrap:wrap;color:var(--muted);font-size:11px;align-items:baseline}
+.ph .m .w{color:#3d4454;font-weight:500}
+.ph .m .n{font-variant-numeric:tabular-nums}
+.pb{padding-block:18px 24px;font-size:14.5px;line-height:1.95;white-space:pre-line}
+.vt{display:flex;gap:8px;justify-content:center;padding-bottom:20px}
+.vt button{display:flex;flex-direction:column;align-items:center;gap:1px;background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:8px 20px;color:#5d6475;font-size:11px}
+.vt button b{font-family:Oswald,sans-serif;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
+.vt button.up.done{border-color:var(--hot);color:var(--hot)}
+.vt button.up.done b{color:var(--hot)}
+.cw{border-top:1px solid var(--line);background:#fbfcfd}
+.ch{padding-block:11px;font-size:12.5px;color:#3d4454;border-bottom:1px solid var(--line-soft)}
+.ch b{font-family:Oswald,sans-serif;color:var(--hot);font-variant-numeric:tabular-nums}
+.cmt{padding-block:10px;border-bottom:1px solid var(--line-soft);font-size:13px}
+.cmt .h{display:flex;gap:7px;align-items:baseline;margin-bottom:3px}
+.cmt .nk{color:#5d6475;font-size:11px}
+.cmt .tm{margin-left:auto;color:var(--ghost);font-size:10px;font-variant-numeric:tabular-nums}
+.cmt .tx{line-height:1.65}
+.cmt.adm{background:#eff3fb}
+.cmt.adm .nk{color:var(--navy);font-weight:700}
+.cmt.op .nk{color:var(--hot)}
+.cmt.re .tx{color:#717886}
+/* ---------- 글쓰기 ---------- */
+.wbar{position:sticky;top:49px;z-index:10;display:flex;align-items:center;gap:8px;background:var(--paper);border-bottom:1px solid var(--line);
+  padding:9px max(14px,env(safe-area-inset-right,0px)) 9px max(14px,env(safe-area-inset-left,0px))}
+.wbar b{font-size:15px;letter-spacing:-.02em}
+.wbar button{background:none;border:none;color:#5d6475;font-size:16px;line-height:1;padding:4px 6px}
+.wbar .submit{margin-left:auto;background:var(--navy);color:#fff;font-size:13px;font-weight:700;padding:7px 16px;border-radius:4px}
+.wbar .submit[disabled]{background:#c7ccd8;cursor:default}
+.wcat{display:flex;gap:5px;overflow-x:auto;padding-block:11px;border-bottom:1px solid var(--line-soft);scrollbar-width:none}
+.wcat::-webkit-scrollbar{display:none}
+.wcat button{flex:none;background:#f1f3f7;border:1px solid transparent;color:#5d6475;font-size:12px;padding:5px 12px;border-radius:13px;white-space:nowrap}
+.wcat button.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+.wline{display:flex;gap:7px;padding-block:10px;border-bottom:1px solid var(--line-soft)}
+.wline input{flex:1;min-width:0;border:1px solid var(--line);border-radius:4px;padding:9px 10px;font-size:13px;font-family:inherit;background:var(--paper);color:var(--ink)}
+.wtitle{width:100%;border:none;border-bottom:1px solid var(--line-soft);padding:14px 2px;font-size:16px;font-weight:700;font-family:inherit;background:none;color:var(--ink);letter-spacing:-.02em}
+.wbody{width:100%;border:none;resize:none;min-height:240px;padding:14px 2px;font-size:14.5px;line-height:1.9;font-family:inherit;background:none;color:var(--ink)}
+.wline input:focus,.wtitle:focus,.wbody:focus{outline:none}
+.wtitle:focus{border-bottom-color:var(--navy)}
+.wnotice{font-size:11px;color:var(--muted);line-height:1.7;background:#f7f8fb;border-radius:5px;padding:10px 12px;margin-bottom:16px}
+.wtools{position:sticky;bottom:0;display:flex;align-items:center;gap:18px;border-top:1px solid var(--line);background:#fafbfd;color:#8a909c;
+  padding:9px max(14px,env(safe-area-inset-right,0px)) calc(9px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
+.wtools button{background:none;border:none;color:inherit;padding:2px;display:grid;place-items:center}
+.wcount{margin-left:auto;font-size:11px;font-variant-numeric:tabular-nums}
+.cnav{display:flex;gap:6px;padding-block:14px}
+.cnav button{flex:1;background:#f1f3f7;border:1px solid var(--line);color:#5d6475;font-size:12.5px;padding:9px 0;border-radius:4px}
+.cnav button[disabled]{color:#b9bec8;background:#f8f9fb;cursor:default}
+
+/* ---------- messenger ---------- */
+#talk{background:var(--ktalk)}
+.khd{position:sticky;top:0;z-index:10;flex:none;display:flex;align-items:center;gap:4px;padding:6px 8px 8px;background:var(--ktalk)}
+.khd .bk{background:none;border:none;color:#1b1b1b;padding:6px 7px;display:grid;place-items:center}
+.khd .nm{font-size:17px;font-weight:700;letter-spacing:-.4px;color:#1b1b1b}
+.khd .rt{margin-left:auto;display:flex;gap:4px}
+.khd .rt button{background:none;border:none;color:#1b1b1b;padding:6px 7px;display:grid;place-items:center}
+.kmsgs{flex:1;padding:6px 12px 10px;display:flex;flex-direction:column;gap:9px}
+.kdate{align-self:center;background:rgba(0,0,0,.14);color:#f4f6f8;font-size:11.5px;padding:3px 13px;border-radius:12px;margin:6px 0 4px}
+.kmsg{display:flex;gap:8px;align-items:flex-end}
+.kmsg.cont{padding-left:48px}
+@media(prefers-reduced-motion:reduce){#notif{transition:none}}
+.kmsg .av{width:40px;height:40px;border-radius:15px;flex:none;align-self:flex-start;overflow:hidden;background:#cfd8e2;display:grid;place-items:center}
+.kmsg .col{min-width:0;max-width:72%}
+.kmsg .nm{font-size:12px;color:#3a3a3a;margin:0 0 4px 2px}
+.kmsg .ln{display:flex;gap:5px;align-items:flex-end}
+.kbub{background:#fff;border-radius:4px 14px 14px 14px;padding:8px 11px;font-size:14.5px;line-height:1.45;color:#1b1b1b;word-break:break-word}
+.kmsg .tm{font-size:10.5px;color:#4a5968;white-space:nowrap;flex:none;padding-bottom:2px}
+.kmsg.me{flex-direction:row-reverse}
+.kmsg.me .col{margin-left:auto}
+.kmsg.me .ln{flex-direction:row-reverse}
+.kmsg.me .kbub{background:var(--kyellow);border-radius:14px 4px 14px 14px}
+.kmsg.me .mt{display:flex;flex-direction:column;align-items:flex-end;flex:none}
+.kmsg.me .un{font-size:10.5px;color:#f0c000;font-weight:700;line-height:1.3}
+.kin{position:sticky;bottom:0;flex:none;display:flex;gap:8px;align-items:flex-end;padding:7px 10px;background:#fff}
+.kin .plus{background:none;border:none;color:#5a5a5a;padding:6px;flex:none;display:grid;place-items:center}
+.kin .box{flex:1;min-width:0;display:flex;align-items:flex-end;gap:6px}
+.kin textarea{flex:1;min-width:0;border:none;resize:none;font-family:inherit;font-size:15px;line-height:1.45;max-height:88px;color:var(--ink);background:none;padding:7px 0}
+.kin textarea:focus{outline:none}
+.kin .send{background:#eceef0;border:none;color:#9b9ea4;font-size:13px;font-weight:700;padding:7px 13px;border-radius:15px;flex:none}
+.kin .send.live{background:var(--kyellow);color:#3b3300}
+
+/* ---------- notification ---------- */
+#notif{
+  position:absolute;left:50%;transform:translateX(-50%) translateY(-180%);
+  top:calc(env(safe-area-inset-top,0px) + 56px);z-index:40;
+  width:calc(100% - 24px);max-width:406px;
+  background:rgba(246,246,248,.82);backdrop-filter:blur(22px);
+  color:#111;border-radius:20px;padding:11px 14px;display:flex;gap:11px;align-items:center;
+  text-align:left;border:none;box-shadow:0 10px 30px rgba(0,0,0,.28);
+  transition:transform .55s cubic-bezier(.2,.9,.3,1.1);
+}
+#notif.in{transform:translateX(-50%) translateY(0)}
+#notif .ic{width:38px;height:38px;border-radius:10px;flex:none;background:var(--kyellow);display:grid;place-items:center}
+#notif .b{min-width:0;flex:1}
+#notif .r1{display:flex;align-items:baseline;gap:7px}
+#notif .r1 b{font-size:13px;letter-spacing:-.2px}
+#notif .r1 i{font-style:normal;font-size:11.5px;color:#6b6f78;margin-left:auto}
+#notif .r2{font-size:14px;color:#2b2e34;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+</style>
+</head>
+<body>
+
+<div class="device">
+  <div class="status" id="status">
+    <span id="clock">22:58</span>
+    <span class="isl"></span>
+    <span class="rt">
+      <span class="bars"><i></i><i></i><i></i><i></i></span>
+      <svg width="17" height="13" viewBox="0 0 17 13" aria-hidden="true"><path d="M8.5 11.6l2-2.1a2.9 2.9 0 00-4 0l2 2.1zM3.6 6.4a7.4 7.4 0 019.8 0l1.4-1.5a9.4 9.4 0 00-12.6 0l1.4 1.5zM6 8.9a4.1 4.1 0 015 0l1.4-1.5a6.1 6.1 0 00-7.8 0L6 8.9z" fill="currentColor"/></svg>
+      <span class="bt"><u></u></span>
+    </span>
+  </div>
+
+  <div class="stage">
+
+    <!-- ===== HOME ===== -->
+    <div class="view" id="home">
+            <div class="widgets">
+        <div class="wgt wx">
+          <b id="wxCity"></b>
+          <div class="wtemp" id="wxTemp"></div>
+          <div class="wcond" id="wxCond"></div>
+          <div class="whl" id="wxHL"></div>
+        </div>
+        <div class="wgt cal">
+          <div class="cdow" id="calDow"></div>
+          <div class="cday" id="calDay"></div>
+          <div class="cev" id="calEv"></div>
+        </div>
+      </div>
+      <div class="grid" id="grid1"></div>
+      <!-- <div class="homenote">카카오톡, 크보덕아웃만 활성화 상태</div> -->
+      <div class="pages"><i class="on"></i><i></i></div>
+      <div class="srchpill"><span><svg width="11" height="11" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12.8 12.8L17 17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>카카오톡, 크보덕아웃만 활성화 상태</span></div>
+      <div class="dock" id="dock"></div>
+    </div>
+
+    <!-- ===== BROWSER ===== -->
+    <div class="view" id="browser" hidden>
+      <div class="cbar">
+        <button class="ib" id="cbBack" aria-label="뒤로"><svg width="16" height="16" viewBox="0 0 20 20"><path d="M12.5 3.5L5.5 10l7 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <span class="url"><svg width="10" height="12" viewBox="0 0 12 14" aria-hidden="true"><path d="M3 6V4.2a3 3 0 016 0V6M2.2 6h7.6v6.5H2.2z" fill="none" stroke="currentColor" stroke-width="1.3"/></svg><span id="urlTxt">kbodugout.kr</span></span>
+        <button class="tabs" aria-label="탭">3</button>
+        <button class="ib" aria-label="메뉴"><svg width="16" height="16" viewBox="0 0 20 20"><circle cx="10" cy="4" r="1.6"/><circle cx="10" cy="10" r="1.6"/><circle cx="10" cy="16" r="1.6"/></svg></button>
+      </div>
+
+      <div class="page">
+        <div id="listView">
+          <div class="brand">
+            <div class="in gut">
+              <span class="mk"><b>크보덕아웃</b><i>DUGOUT</i></span>
+              <span class="sp">
+                <svg width="17" height="17" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12.8 12.8L17 17" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                <svg width="17" height="17" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              </span>
+            </div>
+            <nav class="btabs">
+              <button class="on">KBO리그</button><button>구단별</button><button>MLB</button><button>사회인야구</button><button>국제전</button><button class="off">올림픽 닫힘</button>
+            </nav>
+          </div>
+          <div class="tick" id="tick"></div>
+          <div class="gut">
+            <div class="ghead"><h1 id="galName"></h1><span class="c" id="galCount"></span><button class="w" id="writeBtn">글쓰기</button></div>
+            <div class="ad" id="adBox"></div>
+            <div class="nts" id="notices"></div>
+            <div class="rail" id="rail"></div>
+          </div>
+          <div class="rows gut" id="rows"></div>
+          <div class="gut">
+            <div class="pager"><button class="on">1</button><button>2</button><button>3</button><button>4</button><button>5</button><button>›</button></div>
+            <div class="srch">
+              <select aria-label="검색 범위"><option>제목+내용</option><option>제목</option><option>글쓴이</option></select>
+              <input type="text" id="q" placeholder="게시글 검색"><button class="go">검색</button>
+            </div>
+          </div>
+          <div class="foot gut" id="foot"></div>
+        </div>
+        <div id="postView" hidden></div>
+                <div id="writeView" hidden>
+          <div class="wbar">
+            <button type="button" id="wCancel" aria-label="취소">&#10005;</button>
+            <b>글쓰기</b>
+            <button type="button" id="wSubmit" class="submit">등록</button>
+          </div>
+          <div class="gut">
+            <div class="wcat" id="wCat"></div>
+            <div class="wline">
+              <input id="wNick" type="text" placeholder="닉네임" maxlength="12" autocomplete="off">
+              <input id="wPw" type="password" placeholder="비밀번호" maxlength="8" autocomplete="off">
+            </div>
+            <input id="wTitle" class="wtitle" type="text" placeholder="제목" maxlength="60">
+            <textarea id="wBody" class="wbody" placeholder="내용을 입력하세요"></textarea>
+            <div class="wnotice">
+              게시물 작성 시 운영원칙을 준수해 주십시오.<br>
+              선수 사생활 및 미확인 정보 관련 게시글은 통보 없이 삭제될 수 있습니다.
+            </div>
+          </div>
+          <div class="wtools">
+            <button type="button" aria-label="사진"><svg width="20" height="20" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="8.6" cy="10" r="1.6" fill="currentColor"/><path d="M4.2 17.4l5-5 4 4 2.6-2.4 4 3.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></button>
+            <button type="button" aria-label="동영상"><svg width="20" height="20" viewBox="0 0 24 24"><rect x="3" y="6" width="12.5" height="12" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.5 11l5.3-2.8v7.6L15.5 13z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></button>
+            <button type="button" aria-label="투표"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M5 19V11M12 19V5M19 19v-6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></button>
+            <span class="wcount" id="wCount">0 / 2000</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MESSENGER ===== -->
+    <div class="view" id="talk" hidden>
+      <div class="khd">
+        <button class="bk" id="kBack" aria-label="뒤로"><svg width="11" height="18" viewBox="0 0 11 18"><path d="M9.5 1.5L2 9l7.5 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <span class="nm" id="kName"></span>
+        <span class="rt">
+          <button aria-label="검색"><svg width="19" height="19" viewBox="0 0 20 20"><circle cx="8.6" cy="8.6" r="5.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12.9 12.9L17 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+          <button aria-label="메뉴"><svg width="19" height="19" viewBox="0 0 20 20"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+        </span>
+      </div>
+      <div class="kmsgs" id="kMsgs"></div>
+      <form class="kin" id="kForm">
+        <button type="button" class="plus" aria-label="추가"><svg width="21" height="21" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+        <span class="box"><textarea id="kDraft" rows="1" placeholder="" aria-label="메시지 입력"></textarea></span>
+        <button type="submit" class="send" id="kSend">전송</button>
+      </form>
+    </div>
+
+    <button id="notif" hidden>
+      <span class="ic" id="notifIc"></span>
+      <span class="b">
+        <span class="r1"><b id="notifApp">카카오톡</b><i>지금</i></span>
+        <span class="r2" id="notifTx"></span>
+      </span>
+    </button>
+  </div>
+
+  <div class="hbar" id="hbar"><button aria-label="홈으로"></button></div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   ▼▼▼  여기부터 내용 수정  ▼▼▼
+   글을 고치거나 추가하려면 아래 DATA 안의 값만 바꾸면 됩니다.
+   ══════════════════════════════════════════════════════════════ */
+
+var DATA = {
+
+  /* ── 폰 ─────────────────────────────────────────────────── */
+  phone: {
+    clock: "23:58",          // 상태바 시계
+    wallpaperDark: false,    // 배경이 밝아서 상태바 글씨를 검게 하려면 true
+    // ── 홈 화면 위젯 ──
+    weather:  { city: "서울", temp: "18°", cond: "대체로 맑음", hl: "최고: 21° 최저: 13°" },
+    calendar: { dow: "금요일", day: "16", event: " vs 스톤즈 원정  18:30" }
+  },
+
+  /* ── 카카오톡 ───────────────────────────────────────────── */
+  talk: {
+    name: "강필헌",           // 채팅방 상대 이름
+    initial: "필",            // 프로필 사진 자리에 들어갈 글자
+    myTime: "23:59",         // 내가 보낸 메시지에 찍힐 시간
+
+    /* ───── 지난 대화 ─────────────────────────────────────
+       날짜 하나가 { date, msgs } 한 덩어리입니다.
+       날짜를 더 넣고 싶으면 { } 덩어리를 통째로 복사해서
+       쉼표로 이어 붙이면 됩니다. 위에 있을수록 옛날 대화.
+       { me: true } 를 붙이면 내가 보낸 노란 말풍선.        */
+    days: [
+
+      { date: "2027년 4월 3일 토요일", msgs: [
+        { t: "3호 140M",  tm: "19:02" },
+        { t: "봤어^^",     tm: "19:05", me: true }
+      ] },
+
+      { date: "2027년 4월 8일 목요일", msgs: [
+        { t: "4호 125M 5호 140M 타구속도 190km/h",  tm: "23:15" },
+        { t: "수요일에 친 거 까먹고 있었네 같이 보냄",  tm: "23:16" }
+      ] },
+
+      { date: "2027년 4월 11일 일요일", msgs: [
+        { t: "6호",                        tm: "22:52" },
+        { t: "왜 이번엔 비거리 얘기 안 해~",  tm: "22:57", me: true },
+        { t: "다음 시리즈 홈이지? 내일 볼까?", tm: "22:58", me: true },
+        { t: "어디서 보게",                 tm: "22:58" },
+        { t: "네가 부산으로 와",            tm: "22:59", me: true },
+        { t: "?ㅋㅋ",                       tm: "23:00" },
+        { t: "싫어?",                       tm: "23:00", me: true },
+        { t: "됐어걍",                   },
+        { t: "점심까지 감",                 tm: "23:01" },
+        { t: "응ㅎㅎ 필헌이 짱~",            tm: "23:01", me: true }
+      ] }
+
+    ],
+
+    /* ───── 오늘 온 메시지 (알림으로 뜨는 부분) ───── */
+    date: "2027년 4월 15일 목요일",
+    msgs: [
+      { t: "일락아",     },
+      { t: "머해",   },
+      { t: "퇴근했어?",   tm: "22:57" },
+      { t: "ㅇㅅㅇ",      tm: "22:58" }
+    ],
+
+    // 알림이 뜨는 조건 (둘 중 먼저 만족되는 쪽)
+    afterPosts: 3,           // 게시글 N개를 읽으면
+    afterSeconds: 115        // 또는 N초가 지나면
+  },
+
+  /* ── 게시판 기본 정보 ───────────────────────────────────── */
+  board: {
+    gal: "KBO리그 게시판",
+    count: "1,284,006",       // 머리글 옆 글 수
+    date: "2027.04.15",       // 글 상세에 찍히는 날짜
+    url: "kbodugout.kr",      // 브라우저 주소창
+    tickLabel: "04.15 전 경기 종료",
+    ad: "공주 로드즈 유소년 야구교실 2027 상반기 2기 모집 · 주말 오전반 잔여 4석",
+    cats: ["기록", "로드즈", "시걸즈", "국제전", "잡담"],   // 말머리 목록
+    // 점수가 높은 쪽이 자동으로 굵게 표시됩니다
+    ticker: [
+      { home: "공주 로드즈",   hs: 7, away: "인천 스톤즈",   as: 5, note: "종료" },
+      { home: "부산 시걸즈",   hs: 4, away: "서울 워리어즈", as: 2, note: "종료" },
+      { home: "춘천 블리자드", hs: 5, away: "광주 나이츠",   as: 6, note: "종료" },
+      { home: "서울 페어리즈", hs: 3, away: "대구 플레임즈",   as: 6, note: "종료" }
+    ],
+    notices: [
+      { t: "선수 사생활 및 미확인 정보 관련 게시글 작성 금지 안내", s: "04.14 수정", fresh: true },
+      { t: "게시글 삭제 기준 및 이의 제기 절차", s: "2026.11.02" }
+    ],
+    footer: "본 사이트는 가상 세계관 <b>[UPSET MAKER]</b> 기반 팬 창작물입니다.<br>등장하는 인물·구단·기록·커뮤니티는 모두 가상이며 실존하는 대상과 무관합니다."
+  },
+
+  /* ── 게시글 ─────────────────────────────────────────────────
+     글 하나 = { } 하나. 위에 있을수록 목록 위에 뜹니다.
+       cat   말머리        hot   true면 개념글(굵게 + 개념 뱃지)
+       body  본문 (\n 줄바꿈, \n\n 한 줄 띄우기)
+       cms   댓글 [{ n:닉, i:IP, t:내용, tm:시간, adm:관리자, op:글쓴이, re:답글 }]
+     삭제된 글 자리는 { gone: true, time: "22:58" } 로 넣으면 됩니다.
+     ───────────────────────────────────────────────────────── */
+  posts: [
+
+  { no: "1284006", cat: "시걸즈", hot: true,
+    title: "하일락 4타수 4안타 인터뷰",
+    nick: "ㅇㅇ", ip: "118.235", time: "23:41", views: 25100, votes: 1284,
+    body: "하일락은 자신의 물오른 타격감을 팀원들 덕으로 돌렸다. 하일락은 '내 앞과 뒤에서 잘 쳐줘서 상대 팀이 날 마냥 어렵게 승부할 수 없게 해줬다'라며 시걸즈의 타자들을 먼저 치켜세웠다. 또한 '7회말 태오가 위기 상황에 올라와서 부담이 크고 힘들 텐데도 잘 막아줘서 고맙다'며 동료에게 승리의 공과 고마움을 돌리기도 했다. \n\n",
+    cms: [
+      { n:"ㅇㅇ", i:"118.235", t:"저 사람은 10년 뒤에도 똑같이 말할 것 같음", tm:"23:44" },
+      { n:"세이버붕이", i:"222.108", t:"참고로 오늘 4안타로 OPS 1.0 넘겼습니다. 이 페이스면 이번에야말로 MVP도 가능할 것 같습니다.", tm:"23:47" },
+      { n:"ㅇㅇ", i:"175.223", t:"사생활 털어도 아무것도 안 나오는 선수 진짜 몇 없는데ㄷ...", tm:"23:51" },
+      { n:"ㅇㅇ", i:"211.36", t:"ㄴ그 얘기 여기서 꺼내면 또 글 날아간다", tm:"23:52", re:true },
+      { n:"ㅇㅇ", i:"223.38", t:"유일한 단점이 친구 보는 눈이라는 말이 왜 도는지 요즘 알겠다", tm:"23:52" },
+      { n:"ㅇㅇ", i:"156.78", t:"ㄴ어허", tm:"23:55", re:true },
+      { n:"ㅇㅇ", i:"39.113", t:"다들 왜 이러지 야구 얘기 좀 하자", tm:"23:55" },
+      { n:"ㅇㅇ", i:"22.101", t:"여자라면여민세", tm:"23:57" },
+      { n:"ㅇㅇ", i:"26.166", t:"ㄴ얘 또 왔네", tm:"23:58" }
+    ] },
+
+  { no: "1284005", cat: "워리어즈",
+    title: "양지훈 7이닝 1실점인데 왜 승리투수 아님?",
+    nick: "불펜방화범", ip: "39.7", time: "23:12", views: 4021, votes: 97,
+    body: "7이닝 1실점 9탈삼진 투구수 97개 노디시\n\n너무 굉장하시다 진짜\n\n",
+    cms: [
+      { n:"불펜방화범", i:"39.7", t:"내 닉이 오늘 경기를 설명함", tm:"23:15", op:true },
+      { n:"ㅇㅇ", i:"118.235", t:"워리어즈는 걍 양지훈이 120구씩 완투해야 이기는 팀임 불펜 수준이", tm:"23:21" },
+      { n:"세이버붕이", i:"222.108", t:"양지훈 FIP 2.11입니다.", tm:"23:30" },
+    ] },
+
+  { no: "1284002", cat: "로드즈", 
+    title: "로드즈 3루 수비 좀",
+    nick: "ㅇㅇ", ip: "175.223", time: "22:40", views: 9330, votes: 241,
+    body: "7회에 3루 쪽으로 간 타구 그거 몸 던지면 잡을 수 있을 것 같았는데\n\n",
+    cms: [
+      { n:"공주시민", i:"121.160", t:"뭐 강필헌 선수한테 호수비 바라는게 웃긴 일이죠", tm:"22:44" },
+      { n:"ㅇㅇ", i:"118.42", t:"어제부터니까 그럴 수도", tm:"22:47" },
+      { n:"로드즈창단팬", i:"1.241", t:"저는 이 팀을 사랑하는데 그 선수는 사랑하기가 매년 어려워집니다~ㅠㅠ;;", tm:"23:02" },
+      { n:"ㅇㅇ", i:"39.7", t:"ㄴ로드즈 팬 심정 한 줄 요약", tm:"23:05", re:true },
+      { n:"ㅇㅇ", i:"223.33", t:"실책 없잖아 한잔해~", tm:"23:19" }
+    ] },
+
+      { no: "1284001", cat: "로드즈", 
+    title: "강필헌은 왜 도루 시도 안 함",
+    nick: "ㅇㅇ", ip: "175.223", time: "22:40", views: 9330, votes: 241,
+    body: "바람 그 자체이신데\n\n",
+    cms: [
+      // { n:"공주시민", i:"121.160", t:"뭐 강필헌 선수한테 호수비 바라는게 웃긴 일이죠", tm:"22:44" },
+      // { n:"ㅇㅇ", i:"118.42", t:"어제부터니까 그럴 수도", tm:"22:47" },
+      // { n:"로드즈창단팬", i:"1.241", t:"저는 이 팀을 사랑하는데 그 선수는 사랑하기가 매년 어려워집니다~ㅠㅠ;;", tm:"23:02" },
+      // { n:"ㅇㅇ", i:"39.7", t:"ㄴ로드즈 팬 심정 한 줄 요약", tm:"23:05", re:true },
+      // { n:"ㅇㅇ", i:"223.33", t:"실책 없잖아 한잔해~", tm:"23:19" }
+    ] },
+
+  { no: "1284000", cat: "잡담", hot: true,lock: true,
+    title: "어제부터 크덕 들어올 때마다 글이 사라져있는데 저만 그런가요",
+    nick: "ㅇㅇ", ip: "211.36", time: "22:38", views: 7112, votes: 318,
+    body: "듀듀듀",
+    cms: [
+      { n:"ㅇㅇ", i:"211.36", t:"듀", tm:"22:33", op:true },
+      { n:"ㅇㅇ", i:"118.235", t:"돵", tm:"22:41" },
+      { n:"ㅇㅇ", i:"", t:"듀듀듀", tm:"22:52"},
+      { n:"ㅇㅇ", i:"175.223", t:"듀는 듀다", tm:"22:53", re:true },
+      { n:"ㅇㅇ", i:"121.160", t:"듀~", tm:"23:08" },
+      { n:"ㅇㅇ", i:"182.226", t:"너네 똥 먹어봄?", tm:"23:26" }
+    ] },
+
+  { no: "1283996", cat: "잡담",lock: true,
+    title: "프로라는게 인성부터 갖춰야 하는데",
+    nick: "공주시민", ip: "121.160", time: "22:35", views: 5890, votes: 402,
+    body: "개레전드 병크ㄷㄷ",
+    cms: [
+      { n:"오구", i:"118.235", t:"ㄹㅇ", tm:"22:11" }
+    ] },
+
+    { no: "1283995", cat: "잡담",
+    title: "하일락은 왜",
+    nick: "ㅇㅇ", ip: "102.137", time: "22:33", views: 2510, votes: 292,
+    body: "걔 아끼는 거지 아무리 그래도 타팀이고 잊을만하면 이렇게 터지는데...",
+    cms: [
+      { n:"ㅇㅇ", i:"223.38", t:"아겜 가서 잘 맞으니까 친해진거지 뭐", tm:"22:35" },
+      { n:"돌빠", i:"122.68", t:"부산 프차인 만큼 친구도 좀 가려 사귀었으면ㅠㅠ", tm:"22:37" },
+      { n:"ㅇㅇ", i:"190.225", t:"ㄴ야선이 다 거기서 거기지 하일락은 뭐 다를줄아냐", tm:"22:38", re:true },
+      { n:"ㅇㅇ", i:"178.07", t:"걔랑 친한 거 보면 하일락도 알만함", tm:"22:40" },
+    ] },
+
+  { no: "1283994", cat: "로드즈",
+    title: "이또병은 진짜 재능충이 맞다",
+    nick: "이모", ip: "1.225", time: "22:33", views: 3204, votes: 88,
+    body: "그렇게 바쁜데 벌써 홈런 6개 치신 거 보면ㄷㄷ",
+    cms: [
+      { n:"뉴비", i:"118.235", t:"이또병이 뭐예요?? 잘 몰라서 여쭙습니다", tm:"22:33" },
+      { n:"ㅇㅇ", i:"190.225", t:"ㄴ25 또 병크", tm:"22:34", op:true, re:true },
+      { n:"ㅇㅇ", i:"39.113", t:"걔 워크에식 구린 거 이미 유명하잖아 새삼", tm:"22:34" },
+      { n:"ㅇㅇ", i:"15.721", t:"진짜 얘기 나오는 것만 보면 일반인도 번아웃 올 것 같은 수준이던데ㅋㅋ", tm:"22:37" },
+    ] },
+
+  { gone: true, time: "22:32" },
+
+  { no: "1283988", cat: "기록",lock: true,
+    title: "숏 WAR 상위 5명 4월 초반 스플릿 정리했습니다",
+    nick: "세이버붕이", ip: "222.108", time: "22:30", views: 1540, votes: 120,
+    body: "듀듀듀",
+     },
+
+  { gone: true, time: "22:29" },
+  { gone: true, time: "22:27" },
+
+  { no: "1283985", cat: "잡담", hot: true,
+    title: "한지오 선수 인스타",
+    nick: "ㅇㅇ", ip: "125.209", time: "22:26", views: 6770, votes: 156,
+    body: "이유성 사랑한다고 댓글닮",
+    cms: [
+      { n:"ㅇㅇ", i:"125.209", t:"또 그 키스톤...", tm:"22:27", op:true },
+      { n:"ㅇㅇ", i:"118.235", t:"한지오 선수 여자친구 있을 것 같은데 신경 안 쓰나 봐요ㅋㅋ", tm:"22:28" },
+      { n:"ㅇㅇ", i:"39.113", t:"ㄴ야구선수들 일상인데 뭐", tm:"22:28" },
+      { n:"ㅇㅇ", i:"25.109", t:"채안서 선수한테도 달던데요", tm:"22:30" }
+    ] },
+
+  { no: "1283981", cat: "잡담", hot: true,
+    title: "인스타 스토리 하루에 열 개 올리던 사람이 조용해지면",
+    nick: "ㅇㅇ", ip: "223.38", time: "22:26", views: 11200, votes: 530,
+    body: "폰을 잃어버리신게 맞겠지요?ㅎㅎ\n\n",
+    cms: [
+      { n:"공주시민", i:"121.160", t:"저는 그 계정 알림 켜놓고 있었는데 어제부터 조용해서 솔직히 적응이 안 됩니다;", tm:"22:27" },
+      { n:"ㅇㅇ", i:"211.36", t:"열두 장 올리다가 갑자기 하루 넘게 아무것도 안 올리는 게 딱 25 템플릿", tm:"22:29" },
+      { n:"ㅇㅇ", i:"175.223", t:"그래도 오늘 안타 침", tm:"22:29" },
+      { n:"ㅇㅇ", i:"1.225", t:"ㄴ이 댓글이 제일 롣빠 같다", tm:"22:30", re:true }
+    ] },
+
+  { gone: true, time: "22:23" },
+
+  { no: "1283972", cat: "나이츠", hot: true,lock: true,
+    title: "오영원은 영결이 맞지",
+    nick: "직관러", ip: "39.113", time: "22:21", views: 8450, votes: 390,
+    body: "ㅇㅈ?",
+    cms: [
+      { n:"ㅇㅇ", i:"175.223", t:"ㅇㅈ띠", tm:"22:21" },
+      { n:"ㅇㅇ", i:"118.235", t:"ㅇㅈ를ㅇㅈ", tm:"22:23" },
+      { n:"ㅇㅇ", i:"223.38", t:"ㅇㅈㅇㅈㅇㅈ", tm:"22:24" },
+      { n:"ㅇㅇ", i:"182.226", t:"경원 둘 다 영결 듀가자~", tm:"22:24" }
+    ] },
+
+  { no: "1283971", cat: "플레임즈", hot: true,
+    title: "감상현 오늘 공 봤냐",
+    nick: "ㅇㅇ", ip: "13.770", time: "22:19", views: 6890, votes: 770,
+    body: "아까 결정구 아겜에서 던진 그 공같은데 저거 구종이 뭐임",
+    cms: [
+      { n:"ㅇㅇ", i:"175.223", t:"커브? 근데 궤적이 특이하네", tm:"22:20" },
+      { n:"ㅇㅇ", i:"118.235", t:"슬라이더 아닌가", tm:"22:20" },
+      { n:"ㅇㅇ", i:"12.295", t:"업슛같은데요 우성윤이 던지던 거", tm:"22:21" },
+      { n:"감빠", i:"223.38", t:"언제 새 구종 장착까지 했는지 진짜 감상현만 보면 눈물이 납니다 나 감상현 사랑하네", tm:"22:22" }
+    ] },
+
+  { no: "1283968", cat: "로드즈",
+    title: "조조윤 오늘 선발 공 25개 뺀 거 아는 사람",
+    nick: "ㅇㅇ", ip: "182.226", time: "22:18", views: 2130, votes: 76,
+    body: "싸패식 야구ㄷㄷ",
+    cms: [
+      { n:"진개", i:"125.109", t:"너무 아름답다", tm:"22:19" },
+      { n:"ㅇㅇ", i:"156.78", t:"조조윤이 조윤놀이로 공 빼놓으면 25가 삼구삼진으로 투구수 정상화 시켜줌ㅋㅋ", tm:"22:21" },
+    ] },
+    
+  { gone: true, time: "22:18" },
+  { gone: true, time: "22:17" },
+
+  { no: "1283964", cat: "스톤즈",lock: true,
+    title: "햄세규 호수비 클립 떴다",
+    nick: "ㅇㅇ", ip: "119.30", time: "22:16", views: 4480, votes: 168,
+    body: "듀듀듀",
+     },
+
+  { no: "1283960", cat: "잡담",
+    title: "내일 워리어즈 상대전적 딸려서 쫄린다고 하는 사람들 있는데",
+    nick: "ㅇㅇ", ip: "156.78", time: "22:16", views: 1870, votes: 44,
+    body: "이청룡 걍 거르면 그만임ㅋㅋ",
+    cms: [
+      { n:"ㅇㅇ", i:"222.108", t:"고맙다 도루하면 금방 점수 낸다", tm:"22:17" },
+      { n:"ㅇㅇ", i:"118.235", t:"금강호는 뭐 만만하냐?", tm:"22:17" },
+      { n:"ㅇㅇ", i:"121.160", t:"ㄴㄹㅇ", tm:"22:18", re:true },
+      { n:"ㅇㅇ", i:"22.101", t:"여자라면여민세", tm:"22:20" }
+    ] },
+
+    { no: "1283958", cat: "로드즈",
+    title: "타) 25 뭔상황이냐",
+    nick: "ㅇㅇ", ip: "197.43", time: "22:15", views: 1267, votes: 20,
+    body: "a랑 만나다가 헤어지고 b 만나려고 했는데 a랑 재결합 얘기한 거 b한테 들킨 거?",
+   cms: [
+      { n:"ㅇㅇ", i:"22.101", t:"개바쁘게 사네 진짜ㅋㅋㅋ", tm:"22:20" }
+    ] },
+
+
+  { gone: true, time: "22:15" }
+
+  ]
+};
+
+/* ══════════════════════════════════════════════════════════════
+   ▲▲▲  여기까지만 수정하면 됩니다. 아래는 화면을 그리는 코드예요.  ▲▲▲
+   ══════════════════════════════════════════════════════════════ */
+
+var $ = function(id){ return document.getElementById(id); };
+var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); };
+var nf = function(n){ return Number(n || 0).toLocaleString("ko-KR"); };
+
+var B = DATA.board, T = DATA.talk;
+var activeCat = "전체", read = {}, opened = 0, notified = false, talkSeen = false;
+
+/* ─────────── app icons ─────────── */
+function tile(bg, inner){ return '<span class="ic" style="background:' + bg + '">' + inner + '</span>'; }
+var ICONS = {
+  calendar: tile("#fff",
+    '<span style="display:flex;flex-direction:column;align-items:center;line-height:1">'
+    + '<b style="color:#ff3b30;font-size:10px;letter-spacing:.5px;margin-bottom:1px">목</b>'
+    + '<b style="color:#1b1b1b;font-size:28px;font-weight:300">15</b></span>'),
+  memo: tile("linear-gradient(180deg,#fff 0 22%,#ffd426 22% 100%)",
+    '<svg width="34" height="34" viewBox="0 0 34 34"><g stroke="rgba(0,0,0,.22)" stroke-width="1.4" stroke-linecap="round"><path d="M8 16h18M8 21h18M8 26h12"/></g></svg>'),
+  reminder: tile("#fff",
+    '<svg width="32" height="32" viewBox="0 0 32 32"><circle cx="8" cy="9" r="3.2" fill="#fd3b30"/><circle cx="8" cy="18" r="3.2" fill="#fe9500"/><circle cx="8" cy="26" r="3.2" fill="#34c759"/><g stroke="#c9ccd2" stroke-width="1.8" stroke-linecap="round"><path d="M15 9h10M15 18h10M15 26h8"/></g></svg>'),
+  photos: tile("#fff",
+    '<svg width="36" height="36" viewBox="0 0 36 36"><g opacity=".9"><ellipse cx="18" cy="10" rx="4" ry="7" fill="#fcc419"/><ellipse cx="18" cy="26" rx="4" ry="7" fill="#4dabf7"/><ellipse cx="10" cy="18" rx="7" ry="4" fill="#fa5252"/><ellipse cx="26" cy="18" rx="7" ry="4" fill="#51cf66"/><circle cx="18" cy="18" r="4" fill="#fff"/></g></svg>'),
+  insta: tile("linear-gradient(140deg,#f9ce34,#ee2a7b 48%,#6228d7)",
+    '<svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="7.4" fill="none" stroke="#fff" stroke-width="2.4"/><circle cx="23" cy="7" r="1.9" fill="#fff"/></svg>'),
+  kbo: tile("linear-gradient(160deg,#2a3f79,#16224a)",
+    '<svg width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="#fff"/><g stroke="#d6453a" stroke-width="1.5" fill="none" stroke-linecap="round"><path d="M8.6 8.6c2.4 2.2 2.4 12.6 0 14.8M23.4 8.6c-2.4 2.2-2.4 12.6 0 14.8"/></g></svg>'),
+  weather: tile("linear-gradient(170deg,#4aa8f0,#1f6fd0)",
+    '<svg width="34" height="34" viewBox="0 0 34 34"><circle cx="13" cy="13" r="5.4" fill="#ffd43b"/><path d="M11 25a4.6 4.6 0 010-9.2 6.4 6.4 0 0112.2 1.6A3.9 3.9 0 0122 25z" fill="#fff"/></svg>'),
+  settings: tile("linear-gradient(170deg,#c3c6cc,#8e9299)",
+    '<svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="9.6" fill="none" stroke="#fff" stroke-width="2.6"/><circle cx="15" cy="15" r="3.4" fill="#fff"/></svg>'),
+  phone: tile("linear-gradient(170deg,#5ee077,#15b93d)",
+    '<svg width="30" height="30" viewBox="0 0 30 30"><path d="M9.4 5.5c1 0 1.6.4 2 1.4l1 2.4c.4 1 .2 1.7-.6 2.3l-1 .8c.9 2.2 2.5 3.8 4.7 4.7l.8-1c.6-.8 1.3-1 2.3-.6l2.4 1c1 .4 1.4 1 1.4 2v2.2c0 1.4-1 2.3-2.5 2.2C13 22.3 7.7 17 7.2 8c-.1-1.5.8-2.5 2.2-2.5z" fill="#fff"/></svg>'),
+  messages: tile("linear-gradient(170deg,#5ee077,#15b93d)",
+    '<svg width="31" height="31" viewBox="0 0 31 31"><path d="M15.5 6.4c5.6 0 9.8 3.5 9.8 8s-4.2 8-9.8 8a12 12 0 01-2.6-.3l-4.6 2.3 1.2-3.8c-2.4-1.5-3.8-3.8-3.8-6.2 0-4.5 4.2-8 9.8-8z" fill="#fff"/></svg>'),
+  chrome: tile("#fff",
+    '<svg width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="12" fill="none" stroke="#4285f4" stroke-width="3.4"/><circle cx="17" cy="17" r="5" fill="none" stroke="#4285f4" stroke-width="2.4"/><g stroke="#9aa6b8" stroke-width="1.5"><path d="M17 5v7M27.4 23l-6-3.5M6.6 23l6-3.5"/></g></svg>'),
+  talk: tile("#fae100",
+    '<svg width="32" height="32" viewBox="0 0 32 32"><path d="M16 7c5.5 0 10 3.3 10 7.5S21.5 22 16 22c-.8 0-1.6-.1-2.3-.2l-4.4 2.6.9-3.6C8 19.5 6 17.2 6 14.5 6 10.3 10.5 7 16 7z" fill="#3c1e1e"/></svg>'),
+  // xapp: tile("#000",
+  //   '<svg width="25" height="25" viewBox="0 0 24 24"><path d="M3 2h4.5l4.9 6.6L18.2 2H22l-7.3 8.5L22.5 22H18l-5.2-7-6.5 7H2.5l7.8-8.9L3 2z" fill="#fff"/></svg>'),
+  music: tile("linear-gradient(170deg,#fc6a80,#f6243f)",
+    '<svg width="30" height="30" viewBox="0 0 30 30"><path d="M12.3 20.4V9.1l8.9-2v9.5" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="9.6" cy="20.6" rx="3.1" ry="2.7" fill="#fff"/><ellipse cx="18.5" cy="18.6" rx="3.1" ry="2.7" fill="#fff"/></svg>')
+,
+  dugout: tile("linear-gradient(162deg,#3a4a88,#1a2446)",
+    '<span style="display:flex;flex-direction:column;align-items:center;gap:4px;line-height:1">'
+    + '<svg width="23" height="23" viewBox="0 0 24 24"><path d="M12 3.2l8.4 8.4L12 20 3.6 11.6z" fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="11.6" r="2.5" fill="#fff"/></svg>'
+    + '<b style="font-family:Oswald,sans-serif;font-size:8px;letter-spacing:.16em;color:#dbe3f7;font-weight:700">DUGOUT</b></span>')
+};
+function appBtn(key, label, live, badge){
+  var b = document.createElement("button");
+  b.className = "app " + (live ? "live" : "dim");
+  b.innerHTML = ICONS[key] + '<span class="lb">' + esc(label) + '</span>'
+    + (badge ? '<span class="bg">' + badge + '</span>' : '');
+  if(live) b.addEventListener("click", function(){ live(); });
+  else b.tabIndex = -1;
+  return b;
+}
+function renderHome(){
+  var w = DATA.phone.weather, c = DATA.phone.calendar;
+  $("wxCity").textContent = w.city;
+  $("wxTemp").textContent = w.temp;
+  $("wxCond").textContent = w.cond;
+  $("wxHL").textContent   = w.hl;
+  $("calDow").textContent = c.dow;
+  $("calDay").textContent = c.day;
+  $("calEv").textContent  = c.event;
+
+  var unread = talkSeen ? 0 : T.msgs.length;
+  var g = $("grid1"); g.innerHTML = "";
+  g.appendChild(appBtn("talk", "카카오톡", function(){ go("talk"); }, unread));
+  g.appendChild(appBtn("insta", "Instagram", null));
+  // g.appendChild(appBtn("xapp", "X", null));
+  g.appendChild(appBtn("kbo", "KBO", null));
+  g.appendChild(appBtn("calendar", "캘린더", null));
+  g.appendChild(appBtn("music", "음악", null));
+  g.appendChild(appBtn("photos", "사진", null));
+  g.appendChild(appBtn("memo", "메모", null));
+  g.appendChild(appBtn("dugout", "크보덕아웃", function(){ go("browser", true); }));
+
+  var d = $("dock"); d.innerHTML = "";
+  d.appendChild(appBtn("phone", "전화", null));
+  d.appendChild(appBtn("messages", "메시지", null));
+  d.appendChild(appBtn("reminder", "미리알림", null));
+  d.appendChild(appBtn("settings", "설정", null));
+}
+
+/* ─────────── screens ─────────── */
+var SCREENS = { home: $("home"), browser: $("browser"), talk: $("talk") };
+var current = "home";
+var animating = false;
+function go(name, noAnim){
+  if(animating) return;
+  if(name === current && !noAnim) return;
+  var prevEl = SCREENS[current], nextEl = SCREENS[name];
+  if(name === "talk"){
+    talkSeen = true;
+    hideNotif();
+    buildTalk();
+  }
+  nextEl.hidden = false;
+  current = name;
+  document.querySelector(".device").className = "device s-" + name;
+  var dark = (name !== "home");
+  $("status").classList.toggle("dark", dark);
+  $("hbar").classList.toggle("dark", dark);
+  if(name === "home") renderHome();
+
+  if(noAnim || !prevEl || prevEl === nextEl){
+    Object.keys(SCREENS).forEach(function(k){ SCREENS[k].hidden = (k !== name); });
+  } else if(name === "home"){
+    animating = true;                                  // 앱이 아이콘으로 빨려들어감
+    prevEl.classList.add("closing");
+    nextEl.classList.add("opening");
+    setTimeout(function(){
+      prevEl.classList.remove("closing");
+      prevEl.hidden = true;
+      nextEl.classList.remove("opening");
+      animating = false;
+    }, 450);
+  } else {
+    animating = true;                                  // 앱이 펼쳐지며 열림
+    Object.keys(SCREENS).forEach(function(k){
+      if(k !== name && k !== "home") SCREENS[k].hidden = true;
+    });
+    nextEl.classList.add("launching");
+    setTimeout(function(){
+      nextEl.classList.remove("launching");
+      SCREENS.home.hidden = true;
+      animating = false;
+    }, 420);
+  }
+
+  if(name === "talk"){
+    var sc = SCREENS.talk;
+    sc.scrollTop = sc.scrollHeight;
+    requestAnimationFrame(function(){ sc.scrollTop = sc.scrollHeight; });
+  }
+}
+
+/* swipe up on the home indicator */
+(function(){
+  var bar = $("hbar"), y0 = null;
+  bar.addEventListener("pointerdown", function(e){ y0 = e.clientY; bar.setPointerCapture(e.pointerId); });
+  bar.addEventListener("pointerup", function(e){
+    var moved = y0 == null ? 0 : y0 - e.clientY;
+    y0 = null;
+    if(current !== "home" && (moved > 18 || moved <= 4)) go("home");
+  });
+  bar.addEventListener("pointercancel", function(){ y0 = null; });
+})();
+
+/* ─────────── board ─────────── */
+function renderBoard(){
+  $("clock").textContent = DATA.phone.clock;
+  if(DATA.phone.wallpaperDark) $("status").classList.add("dark");
+  $("urlTxt").textContent = B.url;
+  $("galName").textContent = B.gal;
+  $("galCount").textContent = "글 " + B.count;
+  $("adBox").innerHTML = '<span class="t">AD</span><span>' + esc(B.ad) + '</span>';
+  $("foot").innerHTML = '<div class="g">' + B.footer + '</div>';
+  $("tick").innerHTML = '<span class="d">' + esc(B.tickLabel) + '</span>'
+    + B.ticker.map(function(g){
+        var hw = Number(g.hs) > Number(g.as), aw = Number(g.as) > Number(g.hs);
+        return '<span class="g"><span class="' + (hw ? "w" : "") + '">' + esc(g.home) + '</span>'
+          + '<span class="s">' + esc(g.hs) + ' : ' + esc(g.as) + '</span>'
+          + '<span class="' + (aw ? "w" : "") + '">' + esc(g.away) + '</span>'
+          + '<span class="n">' + esc(g.note) + '</span></span>';
+      }).join("");
+  $("notices").innerHTML = B.notices.map(function(n){
+    return '<div class="nt' + (n.fresh ? " fresh" : "") + '"><span class="p">공지</span><span>'
+      + esc(n.t) + '</span><span class="s">' + esc(n.s) + '</span></div>';
+  }).join("");
+  renderRail(); renderRows();
+}
+function renderRail(){
+  var rail = $("rail"); rail.innerHTML = "";
+  ["전체"].concat(B.cats).forEach(function(c){
+    var b = document.createElement("button");
+    b.textContent = c;
+    if(c === activeCat) b.className = "on";
+    b.addEventListener("click", function(){ activeCat = c; renderRail(); renderRows(); });
+    rail.appendChild(b);
+  });
+}
+function renderRows(){
+  var el = $("rows"); el.innerHTML = "";
+  DATA.posts.forEach(function(p, i){
+    if(p.gone){
+      if(activeCat !== "전체") return;
+      var g = document.createElement("div");
+      g.className = "row gone";
+      g.innerHTML = '<span class="l1">관리자에 의해 삭제된 게시물입니다</span>'
+        + '<span class="l2"><span>' + esc(p.time) + '</span></span>';
+      el.appendChild(g);
+      return;
+    }
+    if(activeCat !== "전체" && p.cat !== activeCat) return;
+    var b = document.createElement("button");
+    b.className = "row" + (p.hot ? " hot" : "") + (read[i] ? " read" : "");
+    b.innerHTML = '<span class="l1"><span class="cat">' + esc(p.cat) + '</span>'
+      + (p.hot ? '<span class="flag">개념</span>' : '')
+      + esc(p.title) + '<span class="cm">[' + (p.cms ? p.cms.length : 0) + ']</span></span>'
+      + '<span class="l2"><span>' + esc(p.nick) + '(' + esc(p.ip) + ')</span>'
+      + '<span>' + esc(p.time) + '</span>'
+      + '<span class="n">조회 ' + nf(p.views) + '</span>'
+      + '<span class="n v">추천 ' + nf(p.votes) + '</span></span>';
+   if(p.lock) b.classList.add("lock");
+    else b.addEventListener("click", function(){ openPost(i); });
+    el.appendChild(b);
+  });
+}
+function openPost(i){
+  var p = DATA.posts[i];
+  if(!read[i]){ read[i] = true; opened++; }
+  var cms = (p.cms || []).map(function(c){
+    return '<div class="cmt' + (c.adm ? " adm" : "") + (c.op ? " op" : "") + (c.re ? " re" : "") + '">'
+      + '<div class="h"><span class="nk">' + esc(c.n) + (c.i ? "(" + esc(c.i) + ")" : "") + '</span>'
+      + '<span class="tm">' + esc(c.tm) + '</span></div>'
+      + '<div class="tx">' + esc(c.t) + '</div></div>';
+  }).join("");
+
+  $("postView").innerHTML =
+    '<div class="pbar gut"><button id="pbBack"><svg width="9" height="15" viewBox="0 0 10 17" aria-hidden="true"><path d="M9 1L1.5 8.5 9 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>목록</button><span class="ttl">' + esc(B.gal) + '</span></div>'
+    + '<div class="gut"><div class="ph"><span class="cat">' + esc(p.cat) + '</span>'
+      + (p.hot ? '<span class="kn">개념글</span>' : '')
+      + '<h2>' + esc(p.title) + '</h2><div class="m"><span class="w">' + esc(p.nick) + '(' + esc(p.ip) + ')</span>'
+      + '<span>' + esc(B.date) + ' ' + esc(p.time) + '</span>'
+      + '<span class="n">조회 ' + nf(p.views) + '</span><span class="n">추천 ' + nf(p.votes) + '</span></div></div>'
+      + '<div class="pb">' + esc(p.body) + '</div>'
+      + '<div class="vt"><button class="up" id="upBtn"><b id="upN">' + nf(p.votes) + '</b>추천</button>'
+            + '<button><b>' + nf(p.down != null ? p.down : Math.round((p.votes || 0) * 0.07) + 2) + '</b>비추천</button></div></div>'
+    + '<div class="cw"><div class="gut"><div class="ch">전체 댓글 <b>' + (p.cms ? p.cms.length : 0) + '</b>개</div>'
+      + cms + '<div class="cmt" style="color:#aab0bb"><div class="tx">댓글 작성은 로그인 후 이용할 수 있습니다.</div></div></div></div>'
+    + '<div class="gut"><div class="cnav"><button id="pPrev">이전글</button><button id="pList">목록</button><button id="pNext">다음글</button></div></div>';
+
+  $("listView").hidden = true; $("postView").hidden = false;
+  SCREENS.browser.scrollTop = 0;
+  $("urlTxt").textContent = B.url + "/board/" + p.no;
+
+  var up = $("upBtn");
+  up.addEventListener("click", function(){
+    if(up.classList.contains("done")) return;
+    up.classList.add("done");
+    $("upN").textContent = nf((p.votes || 0) + 1);
+  });
+  $("pbBack").addEventListener("click", toList);
+  $("pList").addEventListener("click", toList);
+  // lock 걸린 글과 삭제된 글은 이전/다음글 이동에서 제외
+  var reals = [];
+  DATA.posts.forEach(function(x, j){ if(!x.gone && !x.lock) reals.push(j); });
+  var ri = reals.indexOf(i);
+  var prev = ri > 0 ? reals[ri - 1] : null;
+  var next = (ri > -1 && ri < reals.length - 1) ? reals[ri + 1] : null;
+  if(prev === null) $("pPrev").disabled = true;
+  else $("pPrev").addEventListener("click", function(){ openPost(prev); });
+  if(next === null) $("pNext").disabled = true;
+  else $("pNext").addEventListener("click", function(){ openPost(next); });
+
+  if(opened >= (T.afterPosts || 3)) showNotif();
+}
+function toList(){
+    $("postView").hidden = true; $("writeView").hidden = true; $("listView").hidden = false;
+  SCREENS.browser.scrollTop = 0;
+  $("urlTxt").textContent = B.url;
+  renderRows();
+}
+/* ─────────── 글쓰기 ─────────── */
+var wCat = "";
+
+function openWrite(){
+  $("listView").hidden = true;
+  $("postView").hidden = true;
+  $("writeView").hidden = false;
+  $("urlTxt").textContent = B.url + "/write";
+  SCREENS.browser.scrollTop = 0;
+
+  wCat = B.cats[0] || "잡담";
+  var box = $("wCat");
+  box.innerHTML = "";
+  B.cats.forEach(function(c){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = c;
+    if(c === wCat) b.className = "on";
+    b.addEventListener("click", function(){
+      wCat = c;
+      [].forEach.call(box.children, function(x){ x.className = (x.textContent === c) ? "on" : ""; });
+    });
+    box.appendChild(b);
+  });
+
+  $("wTitle").value = "";
+  $("wBody").value = "";
+  $("wPw").value = "";
+  if(!$("wNick").value) $("wNick").value = "ㅇㅇ";
+  updateWriteState();
+}
+
+function updateWriteState(){
+  var ok = $("wTitle").value.trim() && $("wBody").value.trim();
+  $("wSubmit").disabled = !ok;
+  $("wCount").textContent = $("wBody").value.length + " / 2000";
+}
+
+function randIp(){
+  var head = [118, 175, 211, 121, 223, 39, 182, 156, 1, 125, 114, 222];
+  return head[Math.floor(Math.random() * head.length)] + "." + (Math.floor(Math.random() * 253) + 1);
+}
+
+$("writeBtn").addEventListener("click", openWrite);
+$("wCancel").addEventListener("click", function(){ toList(); });
+$("wTitle").addEventListener("input", updateWriteState);
+$("wBody").addEventListener("input", updateWriteState);
+
+$("wSubmit").addEventListener("click", function(){
+  var title = $("wTitle").value.trim(), body = $("wBody").value.trim();
+  if(!title || !body) return;
+
+  var maxNo = 0;
+  DATA.posts.forEach(function(p){
+    if(p.no) maxNo = Math.max(maxNo, parseInt(p.no, 10) || 0);
+  });
+
+  DATA.posts.unshift({
+    no:    String(maxNo + 1),
+    cat:   wCat,
+    title: title,
+    nick:  $("wNick").value.trim() || "ㅇㅇ",
+    ip:    randIp(),
+    time:  DATA.phone.clock,
+    views: 1,
+    votes: 0,
+    down:  0,
+    body:  body,
+    cms:   []
+  });
+
+  activeCat = "전체";
+  renderRail();
+  toList();
+});
+
+/* ─────────── notification ─────────── */
+var KICON = '<svg width="24" height="24" viewBox="0 0 32 32"><path d="M16 7c5.5 0 10 3.3 10 7.5S21.5 22 16 22c-.8 0-1.6-.1-2.3-.2l-4.4 2.6.9-3.6C8 19.5 6 17.2 6 14.5 6 10.3 10.5 7 16 7z" fill="#3c1e1e"/></svg>';
+var notifIdx = 0;
+var NOTIF_GAP = 2000;   // ← 메시지 사이 간격(밀리초). 2000 = 2초
+
+function showNotif(){
+  if(notified || talkSeen) return;
+  notified = true;
+  pushNext();
+}
+function pushNext(){
+  if(talkSeen) return;
+  var n = $("notif");
+  if(notifIdx >= T.msgs.length){
+    clearTimeout(showNotif._t);
+    showNotif._t = setTimeout(hideNotif, 9000);
+    return;
+  }
+  var m = T.msgs[notifIdx++];
+  var paint = function(){
+    $("notifIc").innerHTML = KICON;
+    $("notifTx").textContent = T.name + ": " + m.t;
+    n.hidden = false;
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ n.classList.add("in"); }); });
+  };
+  if(n.classList.contains("in")){
+    n.classList.remove("in");
+    setTimeout(paint, 260);
+  } else {
+    paint();
+  }
+  clearTimeout(showNotif._t);
+  showNotif._t = setTimeout(pushNext, NOTIF_GAP);
+}
+function hideNotif(){
+  clearTimeout(showNotif._t);
+  $("notif").classList.remove("in");
+  setTimeout(function(){ $("notif").hidden = true; }, 500);
+}
+$("notif").addEventListener("click", function(){ go("talk"); });
+(function(){
+  var n = $("notif"), y0 = null;
+  n.addEventListener("pointerdown", function(e){ y0 = e.clientY; });
+  n.addEventListener("pointerup", function(e){
+    if(y0 != null && y0 - e.clientY > 24){ e.preventDefault(); e.stopPropagation(); hideNotif(); }
+    y0 = null;
+  });
+})();
+setTimeout(showNotif, (T.afterSeconds || 115) * 1000);
+
+/* ─────────── messenger ─────────── */
+var talkBuilt = false;
+var AVATAR = '<svg width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="#b9c6d4"/><circle cx="20" cy="15.5" r="6.4" fill="#fff"/><path d="M6.5 40c1.6-7.6 7-11.6 13.5-11.6S32 32.4 33.5 40z" fill="#fff"/></svg>';
+
+function renderMsgs(list){
+  var out = "", prevMine = null;
+  list.forEach(function(m){
+    var mine = !!m.me, first = (mine !== prevMine);
+    prevMine = mine;
+    if(mine){
+      out += '<div class="kmsg me"><span class="col"><span class="ln">'
+        + '<span class="kbub">' + esc(m.t) + '</span>'
+        + '<span class="mt"><span class="tm">' + esc(m.tm) + '</span></span>'
+        + '</span></span></div>';
+    } else {
+      out += '<div class="kmsg' + (first ? "" : " cont") + '">'
+        + (first ? '<span class="av">' + AVATAR + '</span>' : '')
+        + '<span class="col">' + (first ? '<span class="nm">' + esc(T.name) + '</span>' : '')
+        + '<span class="ln"><span class="kbub">' + esc(m.t) + '</span>'
+        + '<span class="tm">' + esc(m.tm) + '</span></span></span></div>';
+    }
+  });
+  return out;
+}
+
+function buildTalk(){
+  if(talkBuilt) return;
+  talkBuilt = true;
+  $("kName").textContent = T.name;
+  var html = "";
+  (T.days || []).forEach(function(d){
+    if(!d.msgs || !d.msgs.length) return;
+    html += '<div class="kdate">' + esc(d.date) + '</div>' + renderMsgs(d.msgs);
+  });
+  html += '<div class="kdate">' + esc(T.date) + '</div>' + renderMsgs(T.msgs);
+  $("kMsgs").innerHTML = html;
+}
+var kDraft = $("kDraft"), kSend = $("kSend");
+kDraft.addEventListener("input", function(){
+  kDraft.style.height = "auto";
+  kDraft.style.height = Math.min(88, kDraft.scrollHeight) + "px";
+  kSend.classList.toggle("live", kDraft.value.trim().length > 0);
+});
+kDraft.addEventListener("keydown", function(e){
+  if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); $("kForm").requestSubmit(); }
+});
+$("kForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  var v = kDraft.value.trim(); if(!v) return;
+  var d = document.createElement("div");
+  d.className = "kmsg me";
+  d.innerHTML = '<span class="col"><span class="ln"><span class="kbub"></span>'
+    + '<span class="mt"><span class="un">1</span><span class="tm">' + esc(T.myTime) + '</span></span></span></span>';
+  d.querySelector(".kbub").textContent = v;
+  $("kMsgs").appendChild(d);
+  kDraft.value = ""; kDraft.style.height = "auto"; kSend.classList.remove("live");
+  SCREENS.talk.scrollTop = SCREENS.talk.scrollHeight;
+});
+$("kBack").addEventListener("click", function(){ go("home"); });
+
+/* 주소창 뒤로가기: 글이 열려 있으면 목록으로, 목록이면 홈으로 */
+$("cbBack").addEventListener("click", function(){
+  if(!$("writeView").hidden) toList();        // 글쓰기 중이면 목록으로
+  else if($("postView").hidden) go("home");
+  else toList();
+});
+
+/* 옆으로 쓸면 홈으로 */
+(function(){
+  var st = document.querySelector(".stage");
+  var x0 = null, y0 = null, swiped = false;
+    st.addEventListener("pointerdown", function(e){
+    if(e.target.closest("input,textarea") || !$("writeView").hidden){ x0 = null; return; }
+    x0 = e.clientX; y0 = e.clientY; swiped = false;
+  }, true);
+  st.addEventListener("pointerup", function(e){
+    if(x0 == null) return;
+    var dx = e.clientX - x0, dy = e.clientY - y0;
+    x0 = null;
+    if(current !== "home" && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.6){
+      swiped = true;
+      go("home");
+    }
+  }, true);
+  st.addEventListener("pointercancel", function(){ x0 = null; }, true);
+  st.addEventListener("click", function(e){
+    if(swiped){ e.stopPropagation(); e.preventDefault(); swiped = false; }
+  }, true);
+})();
+
+/* ─────────── boot ─────────── */
+renderBoard();
+renderHome();
+go("browser");
+
+(function(){
+  var h = document.createElement("div");
+  h.className = "hint";
+  h.textContent = "아래 막대를 위로 쓸어올리면 홈";
+  document.querySelector(".device").appendChild(h);
+  setTimeout(function(){ h.remove(); }, 4200);
+})();
+</script>
+
+</body>
+</html>
