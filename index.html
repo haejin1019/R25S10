@@ -249,6 +249,7 @@ button{font-family:inherit;cursor:pointer}
 .ph .m .w{color:#3d4454;font-weight:500}
 .ph .m .n{font-variant-numeric:tabular-nums}
 .pb{padding-block:18px 24px;font-size:14.5px;line-height:1.95;white-space:pre-line}
+.pb img{max-width:100%;height:auto;border-radius:3px;margin:6px 0}
 .vt{display:flex;gap:8px;justify-content:center;padding-bottom:20px}
 .vt button{display:flex;flex-direction:column;align-items:center;gap:1px;background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:8px 20px;color:#5d6475;font-size:11px}
 .vt button b{font-family:Oswald,sans-serif;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
@@ -288,6 +289,15 @@ button{font-family:inherit;cursor:pointer}
   padding:9px max(14px,env(safe-area-inset-right,0px)) calc(9px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
 .wtools button{background:none;border:none;color:inherit;padding:2px;display:grid;place-items:center}
 .wcount{margin-left:auto;font-size:11px;font-variant-numeric:tabular-nums}
+
+/* ---------- 삭제된 게시글 화면 ---------- */
+.vanished{text-align:center;padding:70px 12px 80px}
+.vanished .vi{width:46px;height:46px;margin:0 auto 16px;border-radius:50%;background:#f1f3f7;
+  color:#9aa0ab;display:grid;place-items:center;font-family:Oswald,sans-serif;font-size:24px;font-weight:700}
+.vanished .vt{margin:0;font-size:15px;font-weight:700;color:#3d4454;letter-spacing:-.02em}
+.vanished .vs{margin:10px 0 24px;font-size:12px;color:var(--muted);line-height:1.75}
+.vanished .vb{background:#f1f3f7;border:1px solid var(--line);color:#5d6475;font-size:12.5px;padding:9px 22px;border-radius:4px}
+
 .cnav{display:flex;gap:6px;padding-block:14px}
 .cnav button{flex:1;background:#f1f3f7;border:1px solid var(--line);color:#5d6475;font-size:12.5px;padding:9px 0;border-radius:4px}
 .cnav button[disabled]{color:#b9bec8;background:#f8f9fb;cursor:default}
@@ -545,7 +555,7 @@ var DATA = {
     ],
 
     // 알림이 뜨는 조건 (둘 중 먼저 만족되는 쪽)
-    afterPosts: 7,           // 게시글 N개를 읽으면
+    afterPosts: 3,           // 게시글 N개를 읽으면
     afterSeconds: 115        // 또는 N초가 지나면
   },
 
@@ -580,6 +590,22 @@ var DATA = {
      삭제된 글 자리는 { gone: true, time: "22:58" } 로 넣으면 됩니다.
      ───────────────────────────────────────────────────────── */
   posts: [
+
+  { no: "1284009", cat: "잡담", vanish: 2.5,
+    title: "남자에 미쳐서 야페스 처먹는 애들이 진짜 있네",
+    nick: "ㅇㅇ", ip: "221.671", time: "22:57", views: 3, votes: 0,
+    body: "<img src='mockup.png'>",
+    cms: [
+    ] },
+  
+    { no: "1284008", cat: "로드즈",
+    title: "씨) 솔직히 강필헌은 ",
+    nick: "ㅇㅇ", ip: "112.101", time: "22:57", views: 32, votes: 3, down:0,
+    body: "거르고 들어가는게 맞다고 봄 ㅇㅇ\n\n하일락 이새끼 지 앞으로 타구 와도 격수야 공 굴러가유 할듯\n\n여초에서 둘이 엮는거 나붕이는 ㅈㄴ 이해하노 ㅇㅇ",
+    cms: [
+      { n:"격수", i:"207.421", t:"x발", tm:"22:57" },
+      { n:"관리자", i:"", t:"쾌적하고 건강한 커뮤니티 조성을 위해 상호 존중과 올바른 언어 사용에 동참해 주시기 바랍니다.", tm:"22:57", adm:true },
+    ] },
 
   { no: "1284006", cat: "시걸즈", hot: true,
     title: "하일락 4타수 4안타 인터뷰",
@@ -703,7 +729,7 @@ var DATA = {
     cms: [
       { n:"공주시민", i:"121.160", t:"저는 그 계정 알림 켜놓고 있었는데 어제부터 조용해서 솔직히 적응이 안 됩니다;", tm:"22:27" },
       { n:"ㅇㅇ", i:"211.36", t:"열두 장 올리다가 갑자기 하루 넘게 아무것도 안 올리는 게 딱 25 템플릿", tm:"22:29" },
-      { n:"몽무", i:"175.223", t:"그래도 오늘 안타 침", tm:"22:29" },
+      { n:"ㅇㅇ", i:"175.223", t:"그래도 오늘 안타 침", tm:"22:29" },
       { n:"ㅇㅇ", i:"1.225", t:"ㄴ이 댓글이 제일 롣빠 같다", tm:"22:30", re:true }
     ] },
 
@@ -875,6 +901,8 @@ var SCREENS = { home: $("home"), browser: $("browser"), talk: $("talk") };
 var current = "home";
 var animating = false;
 function go(name, noAnim){
+  function go(name, noAnim){
+  clearVanish();}
   if(animating) return;
   if(name === current && !noAnim) return;
   var prevEl = SCREENS[current], nextEl = SCREENS[name];
@@ -1012,7 +1040,7 @@ function openPost(i){
       + '<h2>' + esc(p.title) + '</h2><div class="m"><span class="w">' + esc(p.nick) + '(' + esc(p.ip) + ')</span>'
       + '<span>' + esc(B.date) + ' ' + esc(p.time) + '</span>'
       + '<span class="n">조회 ' + nf(p.views) + '</span><span class="n">추천 ' + nf(p.votes) + '</span></div></div>'
-      + '<div class="pb">' + esc(p.body) + '</div>'
+      + '<div class="pb">' + p.body + '</div>'
       + '<div class="vt"><button class="up" id="upBtn"><b id="upN">' + nf(p.votes) + '</b>추천</button>'
             + '<button><b>' + nf(p.down != null ? p.down : Math.round((p.votes || 0) * 0.07) + 2) + '</b>비추천</button></div></div>'
     + '<div class="cw"><div class="gut"><div class="ch">전체 댓글 <b>' + (p.cms ? p.cms.length : 0) + '</b>개</div>'
@@ -1042,8 +1070,41 @@ function openPost(i){
   if(next === null) $("pNext").disabled = true;
   else $("pNext").addEventListener("click", function(){ openPost(next); });
 
+  clearVanish();
+  if(p.vanish && !p.gone){
+    vanishTimer = setTimeout(function(){
+      vanishTimer = null;
+      p.gone = true;              // 목록에서도 삭제된 글로 바뀜
+      showVanished();
+    }, p.vanish * 1000);
+  }
+
   if(opened >= (T.afterPosts || 3)) showNotif();
 }
+
+/* ─────────── 글이 삭제되는 연출 ─────────── */
+var vanishTimer = null;
+function clearVanish(){
+  if(vanishTimer){ clearTimeout(vanishTimer); vanishTimer = null; }
+}
+function showVanished(){
+  $("postView").innerHTML =
+      '<div class="pbar gut"><button id="pbBack"><svg width="9" height="15" viewBox="0 0 10 17" aria-hidden="true"><path d="M9 1L1.5 8.5 9 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>목록</button><span class="ttl">' + esc(B.gal) + '</span></div>'
+    + '<div class="gut"><div class="vanished">'
+    +   '<div class="vi">!</div>'
+    +   '<p class="vt">운영자에 의해 삭제된 게시글입니다.</p>'
+    +   '<p class="vs">삭제 기준 및 이의 제기 절차는<br>공지사항을 참고해 주십시오.</p>'
+    +   '<button class="vb" id="vBack">목록으로</button>'
+    + '</div></div>';
+  $("urlTxt").textContent = B.url + "/deleted";
+  SCREENS.browser.scrollTop = 0;
+  $("pbBack").addEventListener("click", toList);
+  $("vBack").addEventListener("click", toList);
+}
+
+function toList(){
+  clearVanish(); }
+
 function toList(){
     $("postView").hidden = true; $("writeView").hidden = true; $("listView").hidden = false;
   SCREENS.browser.scrollTop = 0;
